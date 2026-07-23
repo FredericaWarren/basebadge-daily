@@ -8,7 +8,7 @@
 - Keep `NEXT_PUBLIC_CHAIN_ID=8453`.
 - Set `NEXT_PUBLIC_BUILDER_CODE=bc_29s8yo05`.
 - Set `NEXT_PUBLIC_BASE_APP_ID` after base.dev verification.
-- Set `NEXT_PUBLIC_DATA_SUFFIX` to the ERC-8021 encoded string from Base Builder Codes.
+- Set `NEXT_PUBLIC_DATA_SUFFIX=0x62635f32397338796f30350b0080218021802180218021802180218021`.
 
 ## Frontend verification
 
