@@ -1,13 +1,9 @@
-import { createConfig, http } from "wagmi";
+import { cookieStorage, createConfig, createStorage, http } from "wagmi";
 import { base } from "wagmi/chains";
+import { baseAccount } from "wagmi/connectors/baseAccount";
 import { coinbaseWallet } from "wagmi/connectors/coinbaseWallet";
 import { injected, type InjectedParameters } from "wagmi/connectors/injected";
-
-const configuredSuffix = process.env.NEXT_PUBLIC_DATA_SUFFIX;
-const dataSuffix =
-  configuredSuffix && configuredSuffix.startsWith("0x")
-    ? (configuredSuffix as `0x${string}`)
-    : ("0x" as `0x${string}`);
+import { dataSuffix } from "@/lib/attribution";
 
 type InjectedWallet = "okx" | "metamask";
 type ProviderWindow = Pick<Window, "ethereum" | "__baseBadgeProviders">;
@@ -70,6 +66,10 @@ export const coinbaseConnector = coinbaseWallet({
   appName: "BaseBadge Daily",
   preference: { options: "eoaOnly" }
 });
+export const baseAccountConnector = baseAccount({
+  appName: "BaseBadge Daily",
+  preference: { options: "all" }
+});
 
 export const walletOptions = [
   { id: "okx", label: "OKX Wallet", connector: okxConnector },
@@ -77,9 +77,15 @@ export const walletOptions = [
   { id: "coinbase", label: "Coinbase Wallet", connector: coinbaseConnector }
 ] as const;
 
+const connectors =
+  typeof window === "undefined"
+    ? ([okxConnector, metaMaskConnector, coinbaseConnector] as const)
+    : ([okxConnector, metaMaskConnector, coinbaseConnector, baseAccountConnector] as const);
+
 export const wagmiConfig = createConfig({
   chains: [base],
-  connectors: [okxConnector, metaMaskConnector, coinbaseConnector],
+  connectors,
+  storage: createStorage({ storage: cookieStorage }),
   transports: {
     [base.id]: http()
   },

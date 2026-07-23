@@ -7,12 +7,14 @@ import {
   useAccount,
   usePublicClient,
   useReadContracts,
+  useSendCalls,
+  useSendTransaction,
   useWaitForTransactionReceipt,
-  useWriteContract
 } from "wagmi";
 import { WalletChooser } from "@/components/WalletChooser";
+import { appendDataSuffix, dataSuffix, encodeClaimBadgeData } from "@/lib/attribution";
 import { baseBadgeDailyAbi } from "@/lib/baseBadgeDailyAbi";
-import { contractAddress, hasContractAddress, normalizeAddress, shortAddress } from "@/lib/env";
+import { chainId, contractAddress, hasContractAddress, normalizeAddress, shortAddress } from "@/lib/env";
 
 type ClaimLog = {
   tokenId: bigint;
@@ -36,6 +38,7 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [recentClaims, setRecentClaims] = useState<ClaimLog[]>([]);
   const [copied, setCopied] = useState(false);
+  const [isCallsRefreshing, setIsCallsRefreshing] = useState(false);
   const referrer = useMemo(() => {
     if (typeof window === "undefined") return undefined;
     const candidate = normalizeAddress(new URLSearchParams(window.location.search).get("ref"));
@@ -76,9 +79,10 @@ export default function Home() {
   const savedReferrer = Array.isArray(userStats) ? (userStats[2] as Address) : zeroAddress;
   const activeReferrer = savedReferrer !== zeroAddress ? savedReferrer : referrer ?? zeroAddress;
 
-  const { writeContractAsync, data: claimHash, isPending: isClaimPromptOpen } = useWriteContract();
+  const { sendCallsAsync, isPending: isCallsPromptOpen } = useSendCalls();
+  const { sendTransactionAsync, data: claimHash, isPending: isTransactionPromptOpen } = useSendTransaction();
   const receipt = useWaitForTransactionReceipt({ hash: claimHash });
-  const isConfirming = receipt.isLoading;
+  const isConfirming = receipt.isLoading || isCallsRefreshing;
 
   async function loadRecentClaims() {
     if (!publicClient || !address || !hasContractAddress) {
@@ -121,12 +125,29 @@ export default function Home() {
     }
 
     try {
-      await writeContractAsync({
-        address: contractAddress,
-        abi: baseBadgeDailyAbi,
-        functionName: "claimBadge",
-        args: [activeReferrer]
-      });
+      const callData = encodeClaimBadgeData(activeReferrer);
+
+      try {
+        await sendCallsAsync({
+          chainId,
+          calls: [{ to: contractAddress, data: callData }],
+          capabilities: { dataSuffix: { value: dataSuffix } },
+          experimental_fallback: true
+        });
+        setMessage("Badge claim submitted.");
+        setIsCallsRefreshing(true);
+        window.setTimeout(() => {
+          void reads.refetch();
+          void loadRecentClaims().catch(() => setRecentClaims([]));
+          setIsCallsRefreshing(false);
+        }, 4_000);
+        return;
+      } catch {
+        await sendTransactionAsync({
+          to: contractAddress,
+          data: appendDataSuffix(callData)
+        });
+      }
     } catch (caught) {
       setMessage(caught instanceof Error ? caught.message : "Claim failed.");
     }
@@ -154,7 +175,7 @@ export default function Home() {
 
   const claimLabel = !isConnected
     ? "Connect Wallet"
-    : isClaimPromptOpen
+    : isCallsPromptOpen || isTransactionPromptOpen
       ? "Waiting for Wallet"
       : isConfirming
         ? "Confirming"
@@ -211,9 +232,13 @@ export default function Home() {
               className="primary-button"
               type="button"
               onClick={claimBadge}
-              disabled={isClaimPromptOpen || isConfirming || claimingPaused}
+              disabled={isCallsPromptOpen || isTransactionPromptOpen || isConfirming || claimingPaused}
             >
-              {isClaimPromptOpen || isConfirming ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
+              {isCallsPromptOpen || isTransactionPromptOpen || isConfirming ? (
+                <Loader2 className="animate-spin" size={18} />
+              ) : (
+                <Sparkles size={18} />
+              )}
               {claimingPaused ? "Claiming Paused" : claimLabel}
             </button>
 
