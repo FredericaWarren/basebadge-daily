@@ -17,7 +17,9 @@ export function WalletChooser() {
     try {
       await connectAsync({ connector: option.connector });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Connection failed.");
+      const detail = caught instanceof Error ? caught.message : "";
+      const missingProvider = detail.toLowerCase().includes("provider") || detail.toLowerCase().includes("not found");
+      setError(missingProvider ? `Open in ${option.label} or install ${option.label}.` : detail || "Connection failed.");
     }
   }
 

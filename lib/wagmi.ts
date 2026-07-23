@@ -11,25 +11,26 @@ const dataSuffix =
 
 function injectedWithTarget(name: "okx" | "metamask") {
   return injected({
+    unstable_shimAsyncInject: 2_000,
     target: (() => {
       if (typeof window === "undefined") {
         return undefined;
       }
 
-      const ethereum = window.ethereum;
-
-      const providers = ethereum?.providers ?? (ethereum ? [ethereum] : []);
-      if (!ethereum) return undefined;
-
       return {
         id: name,
         name: name === "okx" ? "OKX Wallet" : "MetaMask",
-        provider() {
+        provider(targetWindow) {
+          const ethereum = targetWindow?.ethereum;
+          const providers = ethereum?.providers ?? (ethereum ? [ethereum] : []);
+          if (!ethereum) return undefined;
+
           const selected =
             name === "okx"
               ? providers.find((item) => item.isOkxWallet || item.isOKExWallet)
               : providers.find((item) => item.isMetaMask && !item.isOkxWallet && !item.isOKExWallet);
-          return selected ?? ethereum;
+
+          return selected;
         }
       };
     }) as NonNullable<InjectedParameters["target"]>
