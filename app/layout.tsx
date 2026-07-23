@@ -19,7 +19,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <meta name="base:builder_code" content="bc_29s8yo05" />
         <meta
           name="talentapp:project_verification"
-          content="bf7b2519ea691d2d8e34974ca30a4d7e86169f7a87c189ed655baadeaad0bcbd63a82ebffaa2c2b5c647018697e530421729345170585eb362dad0dafd12761a"
+          content="8453674fc821f1bd5ff38b53adc1df5570e2f871eb89a25dd9f5c9f586d51ed13ba482023127ccbd11742868876fbfaed8ccbecba8ea6306fea3657e1aa2bfd5"
         />
       </head>
       <body className={`${inter.variable} ${lora.variable}`}>
