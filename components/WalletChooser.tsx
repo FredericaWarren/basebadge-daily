@@ -4,7 +4,7 @@ import { LogOut, Wallet } from "lucide-react";
 import { useState } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { shortAddress } from "@/lib/env";
-import { walletOptions } from "@/lib/wagmi";
+import { hasInjectedWallet, walletOptions } from "@/lib/wagmi";
 
 export function WalletChooser() {
   const { address, connector, isConnected } = useAccount();
@@ -14,6 +14,11 @@ export function WalletChooser() {
 
   async function connectWallet(option: (typeof walletOptions)[number]) {
     setError("");
+    if (option.id !== "coinbase" && !hasInjectedWallet(option.id)) {
+      setError(`Open in ${option.label} or install ${option.label}.`);
+      return;
+    }
+
     try {
       await connectAsync({ connector: option.connector });
     } catch (caught) {
